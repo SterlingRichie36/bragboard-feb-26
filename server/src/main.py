@@ -54,8 +54,14 @@ def seed_employees():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    seed_employees()
+    try:
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+    except Exception as e:
+        print(f"[DB Init Warning] {e} - continuing...")
+    try:
+        seed_employees()
+    except Exception as e:
+        print(f"[Seed Warning] {e} - continuing...")
     yield
 
 
