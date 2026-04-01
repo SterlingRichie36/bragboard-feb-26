@@ -20,7 +20,6 @@ comments     = load("src.comments",       os.path.join(_base, "comments.py"))
 engine       = db.engine
 Base         = db.Base
 SessionLocal = db.SessionLocal
-Employee     = models.Employee
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,50 +27,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.database.core import Base as CoreBase, engine as core_engine
 from src.shoutouts.controller import router as shoutout_router
 from src.api import router
-from src.entities import user
-from src.entities.comment import Comment
 from src.admin.controller import router as admin_router
-
-
-def seed_employees():
-    sess = SessionLocal()
-    try:
-        if sess.query(Employee).count() == 0:
-            sess.add_all([
-                Employee(name="Rahul",  department="Engineering"),
-                Employee(name="Aman",   department="AI"),
-                Employee(name="Satyam", department="Backend"),
-                Employee(name="Priya",  department="Design"),
-            ])
-            sess.commit()
-    except Exception as e:
-        sess.rollback()
-        print(f"[Seed Error] {e}")
-    finally:
-        sess.close()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        # Force import all entities so they register on CoreBase
-        from src.entities.shoutout import Shoutout as CoreShoutout
-        from src.entities.user import User as CoreUser
-        from src.entities.comment import Comment as CoreComment
+        from src.entities.shoutout import Shoutout
+        from src.entities.user import User
+        from src.entities.comment import Comment
 
-        # Create tables for database.py Base (Employee, Achievement, etc.)
         Base.metadata.create_all(bind=engine, checkfirst=True)
-
-        # Create tables for database/core.py Base (Shoutout, User, Comment)
         CoreBase.metadata.create_all(bind=core_engine, checkfirst=True)
 
-        print("[DB] All tables created successfully")
+        print("[DB] tables ready")
     except Exception as e:
-        print(f"[DB Init Warning] {e} - continuing...")
-    try:
-        seed_employees()
-    except Exception as e:
-        print(f"[Seed Warning] {e} - continuing...")
+        print(f"[DB Init Warning] {e}")
+
     yield
 
 
