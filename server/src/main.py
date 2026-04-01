@@ -10,12 +10,12 @@ def load(name, filepath):
 
 _base = os.path.dirname(__file__)
 
-db           = load("custom.database",      os.path.join(_base, "database.py"))
-models       = load("custom.models",        os.path.join(_base, "models.py"))
-employees    = load("custom.employees",     os.path.join(_base, "employees.py"))
-shoutouts    = load("custom.shoutouts",     os.path.join(_base, "shoutouts.py"))
-achievements = load("custom.achievements",  os.path.join(_base, "achievements.py"))
-comments     = load("custom.comments",      os.path.join(_base, "comments.py"))
+db           = load("src.database_mod",   os.path.join(_base, "database.py"))
+models       = load("src.models",         os.path.join(_base, "models.py"))
+employees    = load("src.employees",      os.path.join(_base, "employees.py"))
+shoutouts    = load("src.shoutouts_mod",  os.path.join(_base, "shoutouts.py"))
+achievements = load("src.achievements",   os.path.join(_base, "achievements.py"))
+comments     = load("src.comments",       os.path.join(_base, "comments.py"))
 
 engine       = db.engine
 Base         = db.Base
@@ -25,9 +25,13 @@ Employee     = models.Employee
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.database.core import Base, engine
 from src.shoutouts.controller import router as shoutout_router
 from src.api import router
+from src.entities import user
+from src.entities.comment import Comment
 from src.admin.controller import router as admin_router
+
 
 def seed_employees():
     sess = SessionLocal()
@@ -40,35 +44,25 @@ def seed_employees():
                 Employee(name="Priya",  department="Design"),
             ])
             sess.commit()
-            print("[Seed] Employees seeded successfully")
-        else:
-            print("[Seed] Employees already exist, skipping")
     except Exception as e:
         sess.rollback()
         print(f"[Seed Error] {e}")
     finally:
         sess.close()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    import src.models
-    import src.employees
-    import src.shoutouts
-    import src.achievements
-    import src.comments
-
     try:
         Base.metadata.create_all(bind=engine, checkfirst=True)
-        print("[DB] Base tables ready")
     except Exception as e:
-        print(f"[DB Init Warning] Base: {e} - continuing...")
-
+        print(f"[DB Init Warning] {e} - continuing...")
     try:
         seed_employees()
     except Exception as e:
         print(f"[Seed Warning] {e} - continuing...")
-
     yield
+
 
 app = FastAPI(lifespan=lifespan)
 
@@ -80,6 +74,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
 app.include_router(shoutout_router)
 app.include_router(router)
 app.include_router(admin_router)
@@ -90,7 +85,9 @@ app.include_router(comments.router)
 
 @app.get("/")
 def root():
-    return {"message": "BragBoard API is running"}
+    return {
+        "message": "BragBoard API is running"
+    }
 
 @app.get("/health")
 def health():
