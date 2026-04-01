@@ -62,7 +62,7 @@ app.include_router(router)
 app.include_router(admin_router)
 app.include_router(achievements.router)
 app.include_router(shoutouts.router)
-app.include_router(employees.router)
+# app.include_router(employees.router)
 app.include_router(comments.router)
 
 @app.get("/")
