@@ -10,12 +10,12 @@ def load(name, filepath):
 
 _base = os.path.dirname(__file__)
 
-db           = load("src.database_mod",   os.path.join(_base, "database.py"))
-models       = load("src.models",         os.path.join(_base, "models.py"))
-employees    = load("src.employees",      os.path.join(_base, "employees.py"))
-shoutouts    = load("src.shoutouts_mod",  os.path.join(_base, "shoutouts.py"))
-achievements = load("src.achievements",   os.path.join(_base, "achievements.py"))
-comments     = load("src.comments",       os.path.join(_base, "comments.py"))
+db           = load("src.database",        os.path.join(_base, "database.py"))
+models       = load("src.models",          os.path.join(_base, "models.py"))
+employees    = load("src.employees",       os.path.join(_base, "employees.py"))
+shoutouts    = load("src.shoutouts",       os.path.join(_base, "shoutouts.py"))
+achievements = load("src.achievements",    os.path.join(_base, "achievements.py"))
+comments     = load("src.comments",        os.path.join(_base, "comments.py"))
 
 engine       = db.engine
 Base         = db.Base
@@ -25,13 +25,9 @@ Employee     = models.Employee
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.database.core import Base as CoreBase, engine as core_engine
 from src.shoutouts.controller import router as shoutout_router
 from src.api import router
-from src.entities import user
-from src.entities.comment import Comment
 from src.admin.controller import router as admin_router
-
 
 def seed_employees():
     sess = SessionLocal()
@@ -53,11 +49,14 @@ def seed_employees():
     finally:
         sess.close()
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Each create_all in its OWN try block ──
-    # so a duplicate index error in one does NOT stop the other
+    import src.models
+    import src.employees
+    import src.shoutouts
+    import src.achievements
+    import src.comments
+
     try:
         Base.metadata.create_all(bind=engine, checkfirst=True)
         print("[DB] Base tables ready")
@@ -65,18 +64,11 @@ async def lifespan(app: FastAPI):
         print(f"[DB Init Warning] Base: {e} - continuing...")
 
     try:
-        CoreBase.metadata.create_all(bind=core_engine, checkfirst=True)
-        print("[DB] CoreBase tables ready")
-    except Exception as e:
-        print(f"[DB Init Warning] CoreBase: {e} - continuing...")
-
-    try:
         seed_employees()
     except Exception as e:
         print(f"[Seed Warning] {e} - continuing...")
 
     yield
-
 
 app = FastAPI(lifespan=lifespan)
 
