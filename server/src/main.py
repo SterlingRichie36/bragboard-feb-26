@@ -25,7 +25,7 @@ Employee     = models.Employee
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.database.core import Base, engine
+from src.database.core import Base as CoreBase, engine as core_engine
 from src.shoutouts.controller import router as shoutout_router
 from src.api import router
 from src.entities import user
@@ -54,7 +54,18 @@ def seed_employees():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
+        # Force import all entities so they register on CoreBase
+        from src.entities.shoutout import Shoutout as CoreShoutout
+        from src.entities.user import User as CoreUser
+        from src.entities.comment import Comment as CoreComment
+
+        # Create tables for database.py Base (Employee, Achievement, etc.)
         Base.metadata.create_all(bind=engine, checkfirst=True)
+
+        # Create tables for database/core.py Base (Shoutout, User, Comment)
+        CoreBase.metadata.create_all(bind=core_engine, checkfirst=True)
+
+        print("[DB] All tables created successfully")
     except Exception as e:
         print(f"[DB Init Warning] {e} - continuing...")
     try:
@@ -74,7 +85,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
 app.include_router(shoutout_router)
 app.include_router(router)
 app.include_router(admin_router)
@@ -84,10 +94,9 @@ app.include_router(employees.router)
 app.include_router(comments.router)
 
 @app.get("/")
+@app.head("/")
 def root():
-    return {
-        "message": "BragBoard API is running"
-    }
+    return {"message": "BragBoard API is running"}
 
 @app.get("/health")
 def health():

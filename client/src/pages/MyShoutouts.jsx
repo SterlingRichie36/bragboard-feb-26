@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-const API = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL || "https://bragboard-backend-fu3z.onrender.com";
 
 export default function MyShoutouts() {
   const [shoutouts, setShoutouts] = useState([]);
