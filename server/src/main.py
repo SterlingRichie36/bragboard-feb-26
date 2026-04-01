@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 import importlib.util, sys, os
 
-# --- Direct file imports to avoid folder/file name conflicts ---
 def load(name, filepath):
     spec = importlib.util.spec_from_file_location(name, filepath)
     mod  = importlib.util.module_from_spec(spec)
@@ -26,7 +25,7 @@ Employee     = models.Employee
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.database.core import Base, engine
+from src.database.core import Base as CoreBase, engine as core_engine
 from src.shoutouts.controller import router as shoutout_router
 from src.api import router
 from src.entities import user
@@ -45,6 +44,9 @@ def seed_employees():
                 Employee(name="Priya",  department="Design"),
             ])
             sess.commit()
+            print("[Seed] Employees seeded successfully")
+        else:
+            print("[Seed] Employees already exist, skipping")
     except Exception as e:
         sess.rollback()
         print(f"[Seed Error] {e}")
@@ -54,14 +56,25 @@ def seed_employees():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # ── Each create_all in its OWN try block ──
+    # so a duplicate index error in one does NOT stop the other
     try:
         Base.metadata.create_all(bind=engine, checkfirst=True)
+        print("[DB] Base tables ready")
     except Exception as e:
-        print(f"[DB Init Warning] {e} - continuing...")
+        print(f"[DB Init Warning] Base: {e} - continuing...")
+
+    try:
+        CoreBase.metadata.create_all(bind=core_engine, checkfirst=True)
+        print("[DB] CoreBase tables ready")
+    except Exception as e:
+        print(f"[DB Init Warning] CoreBase: {e} - continuing...")
+
     try:
         seed_employees()
     except Exception as e:
         print(f"[Seed Warning] {e} - continuing...")
+
     yield
 
 
@@ -75,7 +88,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
 app.include_router(shoutout_router)
 app.include_router(router)
 app.include_router(admin_router)
@@ -86,9 +98,7 @@ app.include_router(comments.router)
 
 @app.get("/")
 def root():
-    return {
-        "message": "BragBoard API is running"
-    }
+    return {"message": "BragBoard API is running"}
 
 @app.get("/health")
 def health():
