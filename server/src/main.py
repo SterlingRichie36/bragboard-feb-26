@@ -10,12 +10,12 @@ def load(name, filepath):
 
 _base = os.path.dirname(__file__)
 
-db           = load("src.database",        os.path.join(_base, "database.py"))
-models       = load("src.models",          os.path.join(_base, "models.py"))
-employees    = load("src.employees",       os.path.join(_base, "employees.py"))
-shoutouts    = load("src.shoutouts",       os.path.join(_base, "shoutouts.py"))
-achievements = load("src.achievements",    os.path.join(_base, "achievements.py"))
-comments     = load("src.comments",        os.path.join(_base, "comments.py"))
+db           = load("custom.database",      os.path.join(_base, "database.py"))
+models       = load("custom.models",        os.path.join(_base, "models.py"))
+employees    = load("custom.employees",     os.path.join(_base, "employees.py"))
+shoutouts    = load("custom.shoutouts",     os.path.join(_base, "shoutouts.py"))
+achievements = load("custom.achievements",  os.path.join(_base, "achievements.py"))
+comments     = load("custom.comments",      os.path.join(_base, "comments.py"))
 
 engine       = db.engine
 Base         = db.Base
